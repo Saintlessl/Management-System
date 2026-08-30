@@ -1,0 +1,13 @@
+# Local specification and audit prompts
+SPEC.MD.md
+FIXBUG.MD.md
+
+# Local phpMyAdmin database export
+project_management_phpmyadmin.sql
+
+# Local verification/debug artifacts
+backend/e2e-flow.php
+backend/idor-probe.php
+backend/scripts/
+frontend/runtime-smoke.png
+management-system-bug-fixing.md

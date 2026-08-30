@@ -12,8 +12,10 @@ export function ProtectedRoute({ permission }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-label="Memuat sesi" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Memuat sesi" />
+        </div>
       </div>
     );
   }

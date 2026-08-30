@@ -18,6 +18,10 @@ export function useProjectMembers(id: number) {
   return useQuery({ queryKey: ['projects', id, 'members'], queryFn: () => projectsApi.members(id), enabled: Boolean(id) });
 }
 
+export function useProjectCompletionApprovals(id: number) {
+  return useQuery({ queryKey: ['projects', id, 'completion-approvals'], queryFn: () => projectsApi.completionApprovals(id), enabled: Boolean(id) });
+}
+
 export function useProjectLabels(id: number) {
   return useQuery({ queryKey: ['projects', id, 'labels'], queryFn: () => projectsApi.labels(id), enabled: Boolean(id) });
 }
@@ -25,14 +29,21 @@ export function useProjectLabels(id: number) {
 export function useProjectMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['projects'] });
+  const invalidateProject = (id: number) => {
+    invalidate();
+    queryClient.invalidateQueries({ queryKey: ['projects', id, 'completion-approvals'] });
+  };
 
   return {
     createProject: useMutation({ mutationFn: (payload: ProjectPayload) => projectsApi.create(payload), onSuccess: invalidate }),
     updateProject: useMutation({
       mutationFn: ({ id, payload }: { id: number; payload: Partial<ProjectPayload> }) => projectsApi.update(id, payload),
-      onSuccess: invalidate,
+      onSuccess: (_, { id }) => invalidateProject(id),
     }),
     deleteProject: useMutation({ mutationFn: projectsApi.remove, onSuccess: invalidate }),
+    submitCompletion: useMutation({ mutationFn: ({ id, comment }: { id: number; comment?: string }) => projectsApi.submitCompletion(id, comment), onSuccess: (_, { id }) => invalidateProject(id) }),
+    approveCompletion: useMutation({ mutationFn: ({ id, comment }: { id: number; comment?: string }) => projectsApi.approveCompletion(id, comment), onSuccess: (_, { id }) => invalidateProject(id) }),
+    requestCompletionRevision: useMutation({ mutationFn: ({ id, comment }: { id: number; comment: string }) => projectsApi.requestCompletionRevision(id, comment), onSuccess: (_, { id }) => invalidateProject(id) }),
   };
 }
 

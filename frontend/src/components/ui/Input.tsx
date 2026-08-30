@@ -1,39 +1,48 @@
-import { forwardRef, useState, type InputHTMLAttributes } from 'react';
+import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/utils';
+import { Field } from './Field';
+import { controlBase, controlHeight, controlInvalid } from './fieldStyles';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  hint?: string;
+  /** Leading adornment, e.g. a search glyph. Renders inside the control. */
+  icon?: ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, type, disabled, ...props }, ref) => {
+  ({ className, label, error, hint, icon, id, type, disabled, required, ...props }, ref) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const isPassword = type === 'password';
     const inputType = isPassword && isPasswordVisible ? 'text' : type;
 
     return (
-      <div className="w-full">
-        {label && (
-          <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
-            {label}
-          </label>
-        )}
+      <Field id={id} label={label} error={error} hint={hint} required={required}>
         <div className="relative">
+          {icon && (
+            <span
+              className="pointer-events-none absolute inset-y-0 left-0 flex w-9 items-center justify-center text-foreground-muted/80"
+              aria-hidden="true"
+            >
+              {icon}
+            </span>
+          )}
           <input
             ref={ref}
             id={id}
             type={inputType}
             disabled={disabled}
+            required={required}
+            aria-invalid={error ? true : undefined}
             className={cn(
-              'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 caret-blue-600',
-              'placeholder:text-slate-400',
-              'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500',
-              'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500',
-              isPassword && 'pr-11',
-              error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
-              className,
+              controlBase,
+              controlHeight,
+              icon && 'pl-9',
+              isPassword && 'pr-10',
+              error && controlInvalid,
+              className
             )}
             {...props}
           />
@@ -44,16 +53,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               disabled={disabled}
               aria-label={isPasswordVisible ? 'Sembunyikan password' : 'Tampilkan password'}
               aria-pressed={isPasswordVisible}
-              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-500 transition hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-foreground-muted/80 transition-colors hover:text-foreground-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           )}
         </div>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      </div>
+      </Field>
     );
-  },
+  }
 );
 
 Input.displayName = 'Input';

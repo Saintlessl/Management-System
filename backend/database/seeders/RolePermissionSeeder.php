@@ -13,11 +13,13 @@ class RolePermissionSeeder extends Seeder
         $permissionGroups = [
             'Users' => ['users.view', 'users.create', 'users.update', 'users.delete'],
             'Roles' => ['roles.view', 'roles.create', 'roles.update', 'roles.delete', 'permissions.view', 'permissions.create', 'permissions.update', 'permissions.delete'],
-            'Projects' => ['project.view', 'project.create', 'project.update', 'project.delete', 'project.manage_members'],
+            'Projects' => ['project.view', 'project.create', 'project.update', 'project.delete', 'project.manage_members', 'project.submit_completion', 'project.approve_completion'],
+            'Teams' => ['team.view', 'team.create', 'team.update', 'team.delete', 'team.manage_members'],
             'Tasks' => ['task.view', 'task.create', 'task.update', 'task.delete', 'task.assign', 'task.move', 'task.submit_review', 'task.approve'],
             'Comments' => ['comment.create', 'comment.update', 'comment.delete'],
             'Attachments' => ['attachment.upload', 'attachment.download'],
             'Notifications' => ['notification.view'],
+            'Chat' => ['chat.view', 'chat.create', 'chat.send', 'chat.manage'],
             'Audit' => ['audit.view'],
         ];
 
@@ -43,10 +45,12 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'Project Manager',
                 'description' => 'Mengelola project yang ditugaskan beserta anggota dan task.',
                 'permissions' => [
-                    'project.view', 'project.create', 'project.update', 'project.manage_members',
+                    'project.view', 'project.create', 'project.update', 'project.manage_members', 'project.submit_completion', 'project.approve_completion',
+                    'team.view', 'team.create', 'team.update', 'team.manage_members',
                     'task.view', 'task.create', 'task.update', 'task.delete', 'task.assign', 'task.move', 'task.submit_review', 'task.approve',
                     'comment.create', 'comment.update', 'comment.delete',
                     'attachment.upload', 'attachment.download', 'notification.view',
+                    'chat.view', 'chat.create', 'chat.send', 'chat.manage',
                 ],
             ],
             'member' => [
@@ -56,12 +60,13 @@ class RolePermissionSeeder extends Seeder
                     'project.view', 'task.view', 'task.update', 'task.move', 'task.submit_review',
                     'comment.create', 'comment.update', 'comment.delete',
                     'attachment.upload', 'attachment.download', 'notification.view',
+                    'chat.view', 'chat.create', 'chat.send',
                 ],
             ],
             'viewer' => [
                 'name' => 'Viewer',
                 'description' => 'Melihat project dan progress yang diberikan tanpa hak modifikasi.',
-                'permissions' => ['project.view', 'task.view', 'attachment.download', 'notification.view'],
+                'permissions' => ['project.view', 'task.view', 'comment.create', 'attachment.download', 'notification.view', 'chat.view'],
             ],
         ];
 

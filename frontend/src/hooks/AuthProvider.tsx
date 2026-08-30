@@ -41,8 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await authApi.logout();
-    setUser(null);
+    try {
+      await authApi.logout();
+    } finally {
+      // The local session must end even if the backend is temporarily unreachable.
+      setUser(null);
+    }
   };
 
   const hasPermission = useCallback((permission: string): boolean => {

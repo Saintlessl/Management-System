@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\ProjectStatus;
+use App\Enums\TaskPriority;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -18,6 +19,7 @@ class ProjectFactory extends Factory
             'name' => fake()->sentence(3),
             'description' => fake()->paragraph(),
             'status' => ProjectStatus::ACTIVE,
+            'priority' => TaskPriority::MEDIUM,
             'start_date' => today(),
             'deadline' => today()->addMonth(),
             'project_manager_id' => null,

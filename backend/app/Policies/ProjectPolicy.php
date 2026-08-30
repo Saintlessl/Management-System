@@ -43,6 +43,16 @@ class ProjectPolicy
         return $user->hasPermission('project.manage_members') && $this->managesProject($user, $project);
     }
 
+    public function submitCompletion(User $user, Project $project): bool
+    {
+        return $user->hasPermission('project.submit_completion') && $this->managesProject($user, $project);
+    }
+
+    public function approveCompletion(User $user, Project $project): bool
+    {
+        return $user->hasPermission('project.approve_completion') && $this->managesProject($user, $project);
+    }
+
     private function belongsToProject(User $user, Project $project): bool
     {
         return $project->project_manager_id === $user->id

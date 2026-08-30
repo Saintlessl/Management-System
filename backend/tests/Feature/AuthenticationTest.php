@@ -12,6 +12,30 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_local_auth_allows_both_frontend_origins(): void
+    {
+        $this->assertContains('http://localhost:5173', config('cors.allowed_origins'));
+        $this->assertContains('http://127.0.0.1:5173', config('cors.allowed_origins'));
+    }
+
+    public function test_local_auth_uses_host_only_cookies(): void
+    {
+        $response = $this
+            ->withHeader('Origin', 'http://127.0.0.1:5173')
+            ->get('/sanctum/csrf-cookie');
+
+        $response->assertNoContent()->assertCookie('XSRF-TOKEN');
+
+        $xsrfCookie = collect($response->headers->getCookies())
+            ->first(fn ($cookie) => $cookie->getName() === 'XSRF-TOKEN');
+
+        $this->assertNotNull($xsrfCookie);
+        $this->assertNull(
+            $xsrfCookie->getDomain(),
+            'Local auth cookies must be host-only so both localhost and 127.0.0.1 work.',
+        );
+    }
+
     public function test_active_user_can_login_and_load_permissions(): void
     {
         $permission = Permission::create(['name' => 'View users', 'slug' => 'users.view', 'group' => 'Users']);

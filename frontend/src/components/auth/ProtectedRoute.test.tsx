@@ -34,6 +34,12 @@ describe('ProtectedRoute', () => {
     authState.hasPermission.mockReturnValue(false);
   });
 
+  it('shows a loading state until authentication bootstrap finishes', () => {
+    authState.isLoading = true;
+    renderRoutes();
+    expect(screen.getByLabelText('Memuat sesi')).toBeInTheDocument();
+  });
+
   it('redirects guests to login', () => {
     renderRoutes();
     expect(screen.getByText('Login page')).toBeInTheDocument();

@@ -22,6 +22,7 @@ class TaskResource extends JsonResource
             'deadline' => $this->deadline?->toDateString(),
             'position' => $this->position,
             'version' => $this->version,
+            'project' => new ProjectResource($this->whenLoaded('project')),
             'assignee' => new UserResource($this->whenLoaded('assignee')),
             'reporter' => new UserResource($this->whenLoaded('reporter')),
             'parent_task' => new self($this->whenLoaded('parentTask')),

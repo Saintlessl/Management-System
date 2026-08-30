@@ -13,6 +13,7 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +27,7 @@ class ProjectController extends Controller
 
         $projects = Project::query()
             ->select('projects.*')
-            ->with(['manager', 'creator'])
+            ->with(['manager', 'creator', 'team'])
             ->withCount('projectMembers')
             ->withCount('tasks')
             ->withCount(['tasks as done_tasks_count' => fn (Builder $query) => $query->where('status', TaskStatus::DONE->value)])
@@ -73,7 +74,7 @@ class ProjectController extends Controller
         $project = DB::transaction(function () use ($request, $data) {
             $managerId = $data['project_manager_id'] ?? ($request->user()->isSuperAdmin() ? null : $request->user()->id);
             $project = Project::create([
-                ...Arr::only($data, ['name', 'description', 'status', 'start_date', 'deadline']),
+                ...Arr::only($data, ['name', 'description', 'status', 'priority', 'start_date', 'deadline', 'team_id']),
                 'project_manager_id' => $managerId,
                 'created_by' => $request->user()->id,
             ]);
@@ -88,7 +89,7 @@ class ProjectController extends Controller
             return $project;
         });
 
-        $audit->handle($request, 'PROJECT_CREATED', $project, null, $project->only(['name', 'status', 'project_manager_id', 'deadline']));
+        $audit->handle($request, 'PROJECT_CREATED', $project, null, $project->only(['name', 'status', 'priority', 'team_id', 'project_manager_id', 'deadline']));
 
         return response()->json([
             'success' => true,
@@ -111,11 +112,11 @@ class ProjectController extends Controller
     public function update(UpdateProjectRequest $request, Project $project, WriteAuditLog $audit): JsonResponse
     {
         $this->authorize('update', $project);
-        $old = $project->only(['name', 'description', 'status', 'start_date', 'deadline', 'project_manager_id']);
+        $old = $project->only(['name', 'description', 'status', 'priority', 'team_id', 'start_date', 'deadline', 'project_manager_id']);
         $data = $request->validated();
 
         DB::transaction(function () use ($project, $data) {
-            $project->update(Arr::only($data, ['name', 'description', 'status', 'start_date', 'deadline', 'project_manager_id']));
+            $project->update(Arr::only($data, ['name', 'description', 'status', 'priority', 'team_id', 'start_date', 'deadline', 'project_manager_id']));
 
             if (array_key_exists('project_manager_id', $data)) {
                 $project->projectMembers()
@@ -142,10 +143,10 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function destroy(UpdateProjectRequest $request, Project $project, WriteAuditLog $audit): JsonResponse
+    public function destroy(Request $request, Project $project, WriteAuditLog $audit): JsonResponse
     {
         $this->authorize('delete', $project);
-        $old = $project->only(['name', 'status', 'project_manager_id', 'deadline']);
+        $old = $project->only(['name', 'status', 'priority', 'team_id', 'project_manager_id', 'deadline']);
         $audit->handle($request, 'PROJECT_DELETED', $project, $old, null);
         $project->delete();
 
@@ -158,7 +159,7 @@ class ProjectController extends Controller
 
     private function loadProject(Project $project, bool $withMembers = false): Project
     {
-        $project->load(['manager', 'creator']);
+        $project->load(['manager', 'creator', 'team']);
         if ($withMembers) {
             $project->load('members');
         }

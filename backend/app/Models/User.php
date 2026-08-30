@@ -18,6 +18,7 @@ class User extends Authenticatable
         'password',
         'avatar',
         'is_active',
+        'is_online',
     ];
 
     protected $hidden = [
@@ -31,18 +32,30 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_online' => 'boolean',
         ];
     }
 
     // Relationships
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class)->withTimestamps();
+        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
     }
 
     public function projectMemberships(): HasMany
     {
         return $this->hasMany(ProjectMember::class);
+    }
+
+    public function teamMemberships(): HasMany
+    {
+        return $this->hasMany(TeamMember::class);
+    }
+
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'team_members')
+            ->withPivot('team_role', 'joined_at');
     }
 
     public function projects(): BelongsToMany
@@ -79,6 +92,18 @@ class User extends Authenticatable
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function conversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+            ->withPivot('last_read_at')
+            ->withTimestamps();
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class);
     }
 
     // Helpers

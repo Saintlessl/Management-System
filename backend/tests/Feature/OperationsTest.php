@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ApprovalStatus;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -25,6 +26,34 @@ class OperationsTest extends TestCase
         Task::factory()->create(['project_id' => $project->id, 'status' => 'done']);
         $this->loginAs($admin);
         $this->getJson('/api/dashboard')->assertOk()->assertJsonPath('data.total_projects', 2)->assertJsonPath('data.done_tasks', 1);
+    }
+
+    public function test_dashboard_returns_upcoming_deadlines_workload_and_pending_approvals(): void
+    {
+        $admin = $this->superAdmin();
+        $member = User::factory()->create(['name' => 'Workload Member']);
+        $project = Project::factory()->create(['project_manager_id' => $admin->id]);
+        $project->projectMembers()->create(['user_id' => $member->id, 'project_role' => 'member', 'joined_at' => now()]);
+        $due = Task::factory()->create([
+            'project_id' => $project->id,
+            'assignee_id' => $member->id,
+            'status' => 'in_progress',
+            'priority' => 'high',
+            'deadline' => today()->addDay(),
+        ]);
+        $review = Task::factory()->create([
+            'project_id' => $project->id,
+            'status' => 'review',
+            'deadline' => today()->addDays(2),
+        ]);
+        $review->approvals()->create(['status' => ApprovalStatus::PENDING, 'requested_by' => $admin->id]);
+        $this->loginAs($admin);
+
+        $this->getJson('/api/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.upcoming_deadlines.0.id', $due->id)
+            ->assertJsonPath('data.team_workload.0.user.id', $member->id)
+            ->assertJsonPath('data.pending_approvals', 1);
     }
 
     public function test_dashboard_cache_is_invalidated_after_task_creation(): void

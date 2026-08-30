@@ -1,5 +1,18 @@
 import api from './axios';
-import type { ApiResponse, PaginatedResponse, Task, TaskFilters } from '@/types';
+import type { ApiResponse, ApprovalQueueItem, PaginatedResponse, Task, TaskFilters } from '@/types';
+
+export interface WorkspaceTaskFilters extends Omit<TaskFilters, 'assignee_id' | 'deadline'> {
+  project_id?: number;
+  deadline?: 'overdue' | 'next_7_days' | 'none';
+}
+
+export interface ApprovalQueueFilters {
+  search?: string;
+  priority?: Task['priority'];
+  project_id?: number;
+  page?: number;
+  per_page?: number;
+}
 
 export interface TaskPayload {
   title: string;
@@ -17,6 +30,14 @@ export interface TaskPayload {
 export const tasksApi = {
   list: async (projectId: number, filters: TaskFilters = {}): Promise<PaginatedResponse<Task>> => {
     const response = await api.get<PaginatedResponse<Task>>(`/projects/${projectId}/tasks`, { params: filters });
+    return response.data;
+  },
+  myTasks: async (filters: WorkspaceTaskFilters = {}): Promise<PaginatedResponse<Task>> => {
+    const response = await api.get<PaginatedResponse<Task>>('/my-tasks', { params: filters });
+    return response.data;
+  },
+  approvals: async (filters: ApprovalQueueFilters = {}): Promise<PaginatedResponse<ApprovalQueueItem>> => {
+    const response = await api.get<PaginatedResponse<ApprovalQueueItem>>('/approvals', { params: filters });
     return response.data;
   },
   get: async (id: number): Promise<ApiResponse<Task>> => {

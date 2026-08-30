@@ -1,13 +1,15 @@
 import api from './axios';
-import type { ApiResponse, PaginatedResponse, Project, ProjectFilters, ProjectMember, ProjectRole, User } from '@/types';
+import type { ApiResponse, PaginatedResponse, Project, ProjectApproval, ProjectFilters, ProjectMember, ProjectRole, User } from '@/types';
 
 export interface ProjectPayload {
   name: string;
   description?: string | null;
   status: Project['status'];
+  priority?: Project['priority'];
   start_date?: string | null;
   deadline?: string | null;
   project_manager_id?: number | null;
+  team_id?: number | null;
 }
 
 export interface ProjectMemberPayload {
@@ -54,6 +56,10 @@ export const projectsApi = {
   removeMember: async (projectId: number, memberId: number): Promise<void> => {
     await api.delete(`/projects/${projectId}/members/${memberId}`);
   },
+  completionApprovals: async (id: number): Promise<ApiResponse<ProjectApproval[]>> => (await api.get(`/projects/${id}/completion-approvals`)).data,
+  submitCompletion: async (id: number, comment?: string): Promise<ApiResponse<ProjectApproval[]>> => (await api.post(`/projects/${id}/submit-completion`, { comment })).data,
+  approveCompletion: async (id: number, comment?: string): Promise<ApiResponse<ProjectApproval[]>> => (await api.post(`/projects/${id}/approve-completion`, { comment })).data,
+  requestCompletionRevision: async (id: number, comment: string): Promise<ApiResponse<ProjectApproval[]>> => (await api.post(`/projects/${id}/request-completion-revision`, { comment })).data,
   labels: async (projectId: number): Promise<ApiResponse<import('@/types').Label[]>> => (await api.get(`/projects/${projectId}/labels`)).data,
   createLabel: async (projectId: number, payload: { name: string; color: string }): Promise<ApiResponse<import('@/types').Label>> => (await api.post(`/projects/${projectId}/labels`, payload)).data,
   updateLabel: async (id: number, payload: { name?: string; color?: string }): Promise<ApiResponse<import('@/types').Label>> => (await api.patch(`/labels/${id}`, payload)).data,

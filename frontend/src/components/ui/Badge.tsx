@@ -1,77 +1,134 @@
 import { cn } from '@/utils';
 
+/*
+  Status vocabulary.
+
+  Colour is spent only where it carries meaning: neutral for "not started",
+  the blue accent for "in flight", amber for "needs a decision", emerald for
+  "finished", rose for "wrong". Backlog/Todo/Low/Medium deliberately stay
+  neutral — colouring every value is what turns a table into noise.
+*/
+type Tone = 'neutral' | 'accent' | 'warning' | 'success' | 'danger';
+
+const tones: Record<Tone, string> = {
+  neutral: 'bg-surface-muted text-foreground border-border',
+  accent: 'bg-primary-subtle text-primary border-primary-border',
+  // Status tints stay derived from their semantic tokens so client themes
+  // cannot wash out their meaning.
+  warning: 'bg-warning/10 text-warning border-warning/25',
+  success: 'bg-success/10 text-success border-success/25',
+  danger: 'bg-danger/10 text-danger border-danger/25',
+};
+
+const dotTones: Record<Tone, string> = {
+  neutral: 'bg-foreground-muted',
+  accent: 'bg-primary',
+  warning: 'bg-warning',
+  success: 'bg-success',
+  danger: 'bg-danger',
+};
+
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: string;
+  tone?: Tone;
+  dot?: boolean;
   className?: string;
 }
 
-export function Badge({ children, variant, className }: BadgeProps) {
+export function Badge({ children, tone = 'neutral', dot = false, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        variant || 'bg-slate-100 text-slate-800',
+        'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        tones[tone],
         className
       )}
     >
+      {dot && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotTones[tone])} />}
       {children}
     </span>
   );
 }
 
-export function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    planning: 'bg-blue-100 text-blue-800',
-    active: 'bg-green-100 text-green-800',
-    on_hold: 'bg-yellow-100 text-yellow-800',
-    completed: 'bg-emerald-100 text-emerald-800',
-    cancelled: 'bg-red-100 text-red-800',
-    backlog: 'bg-slate-100 text-slate-800',
-    todo: 'bg-blue-100 text-blue-800',
-    in_progress: 'bg-amber-100 text-amber-800',
-    review: 'bg-purple-100 text-purple-800',
-    done: 'bg-green-100 text-green-800',
-    pending: 'bg-yellow-100 text-yellow-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    revision_required: 'bg-orange-100 text-orange-800',
-  };
+const statusMeta: Record<string, { tone: Tone; label: string }> = {
+  // Project lifecycle
+  planning: { tone: 'neutral', label: 'Planning' },
+  active: { tone: 'accent', label: 'Active' },
+  on_hold: { tone: 'warning', label: 'On Hold' },
+  completed: { tone: 'success', label: 'Completed' },
+  cancelled: { tone: 'neutral', label: 'Cancelled' },
+  // Task lifecycle
+  backlog: { tone: 'neutral', label: 'Backlog' },
+  todo: { tone: 'neutral', label: 'To Do' },
+  in_progress: { tone: 'accent', label: 'In Progress' },
+  review: { tone: 'warning', label: 'Review' },
+  done: { tone: 'success', label: 'Done' },
+  // Approval lifecycle
+  pending: { tone: 'warning', label: 'Pending' },
+  approved: { tone: 'success', label: 'Approved' },
+  rejected: { tone: 'danger', label: 'Rejected' },
+  revision_required: { tone: 'warning', label: 'Revision Required' },
+};
 
-  const labels: Record<string, string> = {
-    planning: 'Planning',
-    active: 'Active',
-    on_hold: 'On Hold',
-    completed: 'Completed',
-    cancelled: 'Cancelled',
-    backlog: 'Backlog',
-    todo: 'To Do',
-    in_progress: 'In Progress',
-    review: 'Review',
-    done: 'Done',
-    pending: 'Pending',
-    approved: 'Approved',
-    rejected: 'Rejected',
-    revision_required: 'Revision Required',
-  };
-
-  return <Badge variant={colors[status]}>{labels[status] || status}</Badge>;
+export function StatusBadge({ status, className }: { status: string; className?: string }) {
+  const meta = statusMeta[status] ?? { tone: 'neutral' as Tone, label: status.replaceAll('_', ' ') };
+  return (
+    <Badge tone={meta.tone} dot className={className}>
+      {meta.label}
+    </Badge>
+  );
 }
 
-export function PriorityBadge({ priority }: { priority: string }) {
-  const colors: Record<string, string> = {
-    low: 'bg-slate-100 text-slate-700',
-    medium: 'bg-blue-100 text-blue-700',
-    high: 'bg-orange-100 text-orange-700',
-    critical: 'bg-red-100 text-red-700',
-  };
+const priorityMeta: Record<string, { tone: Tone; label: string }> = {
+  low: { tone: 'neutral', label: 'Low' },
+  medium: { tone: 'neutral', label: 'Medium' },
+  high: { tone: 'warning', label: 'High' },
+  critical: { tone: 'danger', label: 'Critical' },
+};
 
-  const labels: Record<string, string> = {
-    low: 'Low',
-    medium: 'Medium',
-    high: 'High',
-    critical: 'Critical',
-  };
+/*
+  Priority reads as a rank, so it uses a bar glyph rather than a status dot —
+  that keeps it visually distinct from status in a dense table row, and the
+  filled-segment count encodes the rank without relying on colour alone.
+*/
+const priorityRank: Record<string, number> = { low: 1, medium: 2, high: 3, critical: 4 };
 
-  return <Badge variant={colors[priority]}>{labels[priority] || priority}</Badge>;
+export function PriorityBadge({ priority, className }: { priority: string; className?: string }) {
+  const meta = priorityMeta[priority] ?? { tone: 'neutral' as Tone, label: priority };
+  const rank = priorityRank[priority] ?? 0;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap',
+        meta.tone === 'danger'
+          ? 'text-danger'
+          : meta.tone === 'warning'
+            ? 'text-warning'
+            : 'text-foreground-muted',
+        className
+      )}
+    >
+      <span className="flex items-end gap-px" aria-hidden="true">
+        {[1, 2, 3].map((step) => (
+          <span
+            key={step}
+            className={cn(
+              'w-0.5 rounded-full',
+              step === 1 ? 'h-1.5' : step === 2 ? 'h-2' : 'h-2.5',
+              // Critical fills every segment; low fills only the first.
+              (rank >= 4 ? true : rank >= step)
+                ? meta.tone === 'danger'
+                  ? 'bg-danger'
+                  : meta.tone === 'warning'
+                    ? 'bg-warning'
+                    : 'bg-foreground-muted'
+                : 'bg-border'
+            )}
+          />
+        ))}
+      </span>
+      {meta.label}
+    </span>
+  );
 }
