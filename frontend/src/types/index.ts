@@ -33,24 +33,50 @@ export interface Permission {
 // Project types
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled';
 
+export interface Team {
+  id: number;
+  name: string;
+  description: string | null;
+  created_by: number;
+  creator?: User;
+  members_count?: number;
+  projects_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeamMember {
+  id: number;
+  team_id: number;
+  user_id: number;
+  team_role: 'lead' | 'member';
+  joined_at: string;
+  user?: User;
+}
+
 export interface Project {
   id: number;
   name: string;
   description: string | null;
   status: ProjectStatus;
+  priority: TaskPriority;
   start_date: string | null;
   deadline: string | null;
   project_manager_id: number | null;
+  team_id: number | null;
   created_by: number;
   created_at: string;
   updated_at: string;
   manager?: User;
+  team?: Team;
   creator?: User;
   members?: User[];
   members_count?: number;
   tasks_count?: number;
   progress?: number;
   is_overdue?: boolean;
+  completion_submitted_at: string | null;
+  completed_at: string | null;
 }
 
 export interface ProjectMember {
@@ -161,6 +187,43 @@ export interface ApprovalHistory {
   user?: User;
 }
 
+export interface ProjectApproval {
+  id: number;
+  project_id: number;
+  status: ApprovalStatus;
+  requested_by: number;
+  reviewed_by: number | null;
+  comment: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  requester?: User;
+  reviewer?: User;
+  histories?: ProjectApprovalHistory[];
+}
+
+export interface ProjectApprovalHistory {
+  id: number;
+  project_approval_id: number;
+  user_id: number;
+  action: string;
+  comment: string | null;
+  created_at: string;
+  user?: User;
+}
+
+/** Lightweight pending approval item for the cross-project review queue. */
+export interface ApprovalQueueItem {
+  id: number;
+  status: ApprovalStatus;
+  comment: string | null;
+  created_at: string;
+  requester?: User;
+  task: Pick<Task, 'id' | 'project_id' | 'title' | 'status' | 'priority' | 'deadline' | 'version' | 'is_overdue'> & {
+    project: Pick<Project, 'id' | 'name'> | null;
+    assignee: User | null;
+  };
+}
+
 // Audit Log types
 export interface AuditLog {
   id: number;
@@ -216,21 +279,51 @@ export interface PaginationLink {
 }
 
 // Dashboard types
+export interface UpcomingDeadline {
+  id: number;
+  title: string;
+  priority: TaskPriority;
+  deadline: string | null;
+  status: TaskStatus;
+  is_overdue: boolean;
+  project_name?: string;
+  assignee_name?: string;
+}
+
 export interface DashboardStats {
+  role?: string;
   total_users?: number;
   total_projects?: number;
   active_projects?: number;
+  completed_projects?: number;
   overdue_projects?: number;
+  pending_project_approvals?: number | null;
+  revision_requested_projects?: number;
   total_tasks?: number;
+  in_progress_tasks?: number;
   done_tasks?: number;
   overdue_tasks?: number;
   completion_percentage?: number;
   assigned_projects?: number;
   assigned_tasks?: number;
   due_soon_tasks?: number;
+  /** Null when the viewer cannot approve tasks. */
+  pending_approvals?: number | null;
   tasks_by_status?: Record<TaskStatus, number>;
+  upcoming_deadlines?: UpcomingDeadline[];
   team_workload?: TeamWorkload[];
   recent_activities?: AuditLog[];
+  recent_messages?: DashboardRecentMessage[];
+}
+
+export interface DashboardRecentMessage {
+  id: number;
+  body: string | null;
+  user_name?: string;
+  conversation_id: number;
+  conversation_type?: string;
+  conversation_name?: string;
+  created_at: string;
 }
 
 export interface TeamWorkload {
@@ -260,4 +353,63 @@ export interface ProjectFilters {
   direction?: 'asc' | 'desc';
   page?: number;
   per_page?: number;
+}
+
+// Chat types
+export type ConversationType = 'private' | 'team' | 'project';
+
+export interface Conversation {
+  id: number;
+  type: ConversationType;
+  name: string | null;
+  team_id: number | null;
+  project_id: number | null;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  unread_count: number;
+  last_message?: Message;
+  participants?: User[];
+  team?: Team;
+  project?: Project;
+  messages_count?: number;
+}
+
+export interface Message {
+  id: number;
+  conversation_id: number;
+  user_id: number;
+  body: string | null;
+  parent_id: number | null;
+  edited_at: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: User;
+  parent?: Message;
+  reactions?: MessageReaction[];
+  attachments?: MessageAttachment[];
+  replies_count?: number;
+}
+
+export interface MessageReaction {
+  id: number;
+  message_id: number;
+  user_id: number;
+  emoji: string;
+  created_at: string;
+  user?: User;
+}
+
+export interface MessageAttachment {
+  id: number;
+  message_id: number;
+  uploaded_by: number;
+  original_name: string;
+  stored_name: string;
+  mime_type: string;
+  size: number;
+  human_size: string;
+  path: string;
+  created_at: string;
+  uploader?: User;
 }

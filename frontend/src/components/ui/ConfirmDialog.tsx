@@ -11,6 +11,33 @@ interface ConfirmDialogProps {
   onClose: () => void;
 }
 
-export function ConfirmDialog({ isOpen, title, message, confirmLabel = 'Hapus', isLoading, onConfirm, onClose }: ConfirmDialogProps) {
-  return <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm"><p className="text-sm text-slate-600">{message}</p><div className="mt-6 flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={isLoading}>Batal</Button><Button variant="danger" onClick={onConfirm} isLoading={isLoading}>{confirmLabel}</Button></div></Modal>;
+export function ConfirmDialog({
+  isOpen,
+  title,
+  message,
+  confirmLabel = 'Hapus',
+  isLoading,
+  onConfirm,
+  onClose,
+}: ConfirmDialogProps) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+            Batal
+          </Button>
+          <Button variant="danger" size="sm" onClick={onConfirm} isLoading={isLoading}>
+            {confirmLabel}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm leading-relaxed text-foreground-muted">{message}</p>
+    </Modal>
+  );
 }

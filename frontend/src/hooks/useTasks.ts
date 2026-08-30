@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { tasksApi, type TaskPayload } from '@/api/tasks';
+import { tasksApi, type ApprovalQueueFilters, type TaskPayload, type WorkspaceTaskFilters } from '@/api/tasks';
 import type { TaskFilters } from '@/types';
 
 export function useTasks(projectId: number, filters: TaskFilters) {
@@ -7,6 +7,20 @@ export function useTasks(projectId: number, filters: TaskFilters) {
     queryKey: ['projects', projectId, 'tasks', filters],
     queryFn: () => tasksApi.list(projectId, filters),
     enabled: Boolean(projectId),
+  });
+}
+
+export function useMyTasks(filters: WorkspaceTaskFilters) {
+  return useQuery({
+    queryKey: ['my-tasks', filters],
+    queryFn: () => tasksApi.myTasks(filters),
+  });
+}
+
+export function useApprovals(filters: ApprovalQueueFilters) {
+  return useQuery({
+    queryKey: ['approvals', filters],
+    queryFn: () => tasksApi.approvals(filters),
   });
 }
 

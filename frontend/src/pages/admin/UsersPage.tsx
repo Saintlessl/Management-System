@@ -1,15 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { TableSkeleton } from '@/components/ui/Skeleton';
+import { Pagination } from '@/components/ui/Pagination';
+import { UserCell } from '@/components/ui/Avatar';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { Dropdown, DropdownItem, DropdownSeparator } from '@/components/ui/Dropdown';
+import { Table, TableWrap, TBody, Td, Th, THead, Tr } from '@/components/ui/Table';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleOptions } from '@/hooks/useRoles';
 import { useUserMutations, useUsers } from '@/hooks/useUsers';
+import { formatDate } from '@/utils';
 import type { User } from '@/types';
 import type { UserPayload } from '@/api/users';
 
@@ -30,16 +40,15 @@ export function UsersPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [form, setForm] = useState<UserPayload>(emptyForm);
+
   const canEditUsers = hasPermission('users.create') || hasPermission('users.update');
-  const { data, isLoading, isError, refetch } = useUsers({ search: search || undefined, page, per_page: 10 });
-  const { data: roleResponse, isError: roleOptionsError } = useRoleOptions(canEditUsers);
+  const usersQuery = useUsers({ search: search || undefined, page, per_page: 15 });
+  const rolesQuery = useRoleOptions(canEditUsers);
   const { createUser, updateUser, deleteUser } = useUserMutations();
 
-  const roles = roleResponse?.data ?? [];
-  const users = data?.data ?? [];
+  const roles = rolesQuery.data?.data ?? [];
+  const users = usersQuery.data?.data ?? [];
   const isSaving = createUser.isPending || updateUser.isPending;
-
-  const title = useMemo(() => editingUser ? 'Edit pengguna' : 'Tambah pengguna', [editingUser]);
 
   const openCreate = () => {
     setEditingUser(null);
@@ -102,77 +111,235 @@ export function UsersPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Pengguna</h1>
-          <p className="mt-1 text-sm text-slate-500">Kelola akun, status, dan role pengguna.</p>
-        </div>
-        {hasPermission('users.create') && <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Tambah pengguna</Button>}
-      </div>
+    <div className="space-y-4">
+      <PageHeader title="Pengguna" description="Kelola akun, role, dan status akses pengguna.">
+        {hasPermission('users.create') && (
+          <Button onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            Tambah pengguna
+          </Button>
+        )}
+      </PageHeader>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 p-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <input
-              value={search}
-              onChange={(event) => { setSearch(event.target.value); setPage(1); }}
-              placeholder="Cari nama atau email..."
-              className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <FilterBar
+        search={{
+          value: search,
+          onChange: (value) => {
+            setSearch(value);
+            setPage(1);
+          },
+          placeholder: 'Cari nama atau email...',
+          label: 'Cari pengguna',
+        }}
+        onClear={search ? () => setSearch('') : undefined}
+      />
+
+      {usersQuery.isLoading ? (
+        <TableSkeleton rows={8} cols={5} />
+      ) : usersQuery.isError ? (
+        <ErrorState
+          title="Gagal memuat pengguna"
+          message="Tidak dapat memuat daftar pengguna dari server."
+          onRetry={() => usersQuery.refetch()}
+        />
+      ) : users.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={search ? 'Tidak ada pengguna yang cocok' : 'Belum ada pengguna'}
+          description={search ? 'Ubah kata kunci pencarian.' : 'Tambahkan akun untuk anggota tim.'}
+          actionLabel={search ? 'Reset pencarian' : hasPermission('users.create') ? 'Tambah pengguna' : undefined}
+          onAction={search ? () => setSearch('') : hasPermission('users.create') ? openCreate : undefined}
+          actionIcon={search ? undefined : Plus}
+        />
+      ) : (
+        <TableWrap
+          footer={
+            usersQuery.data?.meta && (
+              <Pagination
+                currentPage={page}
+                totalPages={usersQuery.data.meta.last_page}
+                total={usersQuery.data.meta.total}
+                from={usersQuery.data.meta.from}
+                to={usersQuery.data.meta.to}
+                onPageChange={setPage}
+              />
+            )
+          }
+        >
+          <Table minWidth="min-w-[52rem]">
+            <THead>
+              <Tr>
+                <Th className="w-[36%]">Pengguna</Th>
+                <Th>Role</Th>
+                <Th>Status</Th>
+                <Th>Bergabung</Th>
+                <Th align="right">Aksi</Th>
+              </Tr>
+            </THead>
+            <TBody>
+              {users.map((user) => {
+                const canDelete = hasPermission('users.delete') && currentUser?.id !== user.id;
+                const canEdit = hasPermission('users.update');
+                return (
+                  <Tr key={user.id} interactive>
+                    <Td>
+                      <UserCell name={user.name} secondary={user.email} size="sm" />
+                    </Td>
+                    <Td>
+                      <div className="flex flex-wrap gap-1.5">
+                        {user.roles?.length ? (
+                          user.roles.map((role) => <Badge key={role.id}>{role.name}</Badge>)
+                        ) : (
+                          <span className="text-foreground-muted/80">—</span>
+                        )}
+                      </div>
+                    </Td>
+                    <Td>
+                      <Badge tone={user.is_active ? 'success' : 'neutral'} dot>
+                        {user.is_active ? 'Aktif' : 'Nonaktif'}
+                      </Badge>
+                    </Td>
+                    <Td className="whitespace-nowrap text-[13px] text-foreground-muted">
+                      {formatDate(user.created_at)}
+                    </Td>
+                    <Td align="right">
+                      {(canEdit || canDelete) && (
+                        <Dropdown label={`Aksi untuk ${user.name}`}>
+                          {canEdit && (
+                            <DropdownItem
+                              onClick={() => openEdit(user)}
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                            >
+                              Edit pengguna
+                            </DropdownItem>
+                          )}
+                          {canEdit && canDelete && <DropdownSeparator />}
+                          {canDelete && (
+                            <DropdownItem
+                              onClick={() => setDeleteTarget(user)}
+                              icon={<Trash2 className="h-3.5 w-3.5" />}
+                              tone="danger"
+                            >
+                              Hapus pengguna
+                            </DropdownItem>
+                          )}
+                        </Dropdown>
+                      )}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </TBody>
+          </Table>
+        </TableWrap>
+      )}
+
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={editingUser ? 'Edit pengguna' : 'Tambah pengguna'}
+        size="lg"
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setIsOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="user-form"
+              size="sm"
+              isLoading={isSaving}
+              disabled={rolesQuery.isError}
+            >
+              Simpan pengguna
+            </Button>
+          </>
+        }
+      >
+        <form id="user-form" onSubmit={submit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              id="user-name"
+              label="Nama lengkap"
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              required
+            />
+            <Input
+              id="user-email"
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(event) => setForm({ ...form, email: event.target.value })}
+              required
+            />
+            <Input
+              id="user-password"
+              label={editingUser ? 'Password baru' : 'Password'}
+              hint={editingUser ? 'Biarkan kosong untuk mempertahankan password.' : undefined}
+              type="password"
+              value={form.password}
+              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              required={!editingUser}
+            />
+            <Input
+              id="user-password-confirmation"
+              label="Konfirmasi password"
+              type="password"
+              value={form.password_confirmation}
+              onChange={(event) => setForm({ ...form, password_confirmation: event.target.value })}
+              required={!editingUser || Boolean(form.password)}
             />
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-190 text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr><th className="px-4 py-3">Pengguna</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Aksi</th></tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
-                <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-500">Memuat pengguna...</td></tr>
-              ) : isError ? (
-                <tr><td colSpan={4} className="px-4 py-10 text-center"><p className="text-red-600">Pengguna gagal dimuat.</p><Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>Coba lagi</Button></td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-500">Belum ada pengguna.</td></tr>
-              ) : users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-4 py-3"><p className="font-medium text-slate-900">{user.name}</p><p className="text-slate-500">{user.email}</p></td>
-                  <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{user.roles?.map((role) => <Badge key={role.id}>{role.name}</Badge>)}</div></td>
-                  <td className="px-4 py-3"><Badge variant={user.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}>{user.is_active ? 'Aktif' : 'Nonaktif'}</Badge></td>
-                  <td className="px-4 py-3"><div className="flex justify-end gap-1">
-                    {hasPermission('users.update') && <Button variant="ghost" size="sm" onClick={() => openEdit(user)} aria-label={`Edit ${user.name}`}><Pencil className="h-4 w-4" /></Button>}
-                    {hasPermission('users.delete') && currentUser?.id !== user.id && <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} aria-label={`Hapus ${user.name}`}><Trash2 className="h-4 w-4 text-red-600" /></Button>}
-                  </div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <label className="flex items-center gap-2.5 text-[13px] font-medium text-foreground">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              disabled={editingUser?.id === currentUser?.id}
+              onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
+              className="h-4 w-4 rounded border-border text-primary"
+            />
+            Akun aktif
+          </label>
 
-        {data?.meta && data.meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
-            <span className="text-slate-500">Halaman {data.meta.current_page} dari {data.meta.last_page}</span>
-            <div className="flex gap-2"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Sebelumnya</Button><Button variant="outline" size="sm" disabled={page >= data.meta.last_page} onClick={() => setPage(page + 1)}>Berikutnya</Button></div>
-          </div>
-        )}
-      </div>
-
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={title} size="lg">
-        <form onSubmit={submit} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input id="user-name" label="Nama" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
-            <Input id="user-email" label="Email" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
-            <Input id="user-password" label={editingUser ? 'Password baru (opsional)' : 'Password'} type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required={!editingUser} />
-            <Input id="user-password-confirmation" label="Konfirmasi password" type="password" value={form.password_confirmation} onChange={(event) => setForm({ ...form, password_confirmation: event.target.value })} required={!editingUser || Boolean(form.password)} />
-          </div>
-          <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.is_active} disabled={editingUser?.id === currentUser?.id} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} className="h-4 w-4 rounded border-slate-300" />Akun aktif</label>
-          <fieldset><legend className="text-sm font-medium text-slate-700">Role</legend>{roleOptionsError ? <p className="mt-2 text-sm text-red-600">Pilihan role gagal dimuat. Tutup form dan coba lagi.</p> : <div className="mt-2 grid gap-2 sm:grid-cols-2">{roles.map((role) => <label key={role.id} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input type="checkbox" checked={form.role_ids.includes(role.id)} onChange={() => toggleRole(role.id)} className="h-4 w-4 rounded border-slate-300" />{role.name}</label>)}</div>}</fieldset>
-          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4"><Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Batal</Button><Button type="submit" isLoading={isSaving} disabled={roleOptionsError}>Simpan</Button></div>
+          <fieldset className="border-t border-border pt-4">
+            <legend className="text-[13px] font-medium text-foreground">Role</legend>
+            {rolesQuery.isError ? (
+              <p className="mt-2 text-xs text-danger">Pilihan role gagal dimuat.</p>
+            ) : (
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {roles.map((role) => (
+                  <label
+                    key={role.id}
+                    className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border p-2.5 text-[13px] transition-colors hover:bg-input"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.role_ids.includes(role.id)}
+                      onChange={() => toggleRole(role.id)}
+                      className="mt-0.5 h-4 w-4 rounded border-border text-primary"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-medium text-foreground">{role.name}</span>
+                      <code className="text-[11px] text-foreground-muted/80">{role.slug}</code>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </fieldset>
         </form>
       </Modal>
-      <ConfirmDialog isOpen={deleteTarget !== null} title="Hapus pengguna" message={`Hapus ${deleteTarget?.name ?? 'pengguna'}? Pengguna dengan riwayat bisnis harus dinonaktifkan dan tidak dapat dihapus.`} onClose={() => setDeleteTarget(null)} onConfirm={remove} isLoading={deleteUser.isPending} />
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        title="Hapus pengguna"
+        message={`Hapus akun “${deleteTarget?.name}”? Pengguna dengan riwayat kerja sebaiknya dinonaktifkan.`}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={remove}
+        isLoading={deleteUser.isPending}
+      />
     </div>
   );
 }
@@ -180,7 +347,9 @@ export function UsersPage() {
 function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const validationErrors = error.response?.data?.errors as Record<string, string[]> | undefined;
-    return validationErrors ? Object.values(validationErrors)[0]?.[0] : error.response?.data?.message ?? 'Terjadi kesalahan.';
+    return validationErrors
+      ? Object.values(validationErrors)[0]?.[0] ?? 'Data pengguna tidak valid.'
+      : error.response?.data?.message ?? 'Pengguna gagal diproses.';
   }
-  return 'Terjadi kesalahan.';
+  return 'Pengguna gagal diproses.';
 }

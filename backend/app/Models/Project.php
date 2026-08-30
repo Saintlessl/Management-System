@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProjectStatus;
+use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,9 +19,13 @@ class Project extends Model
         'name',
         'description',
         'status',
+        'priority',
         'start_date',
         'deadline',
         'project_manager_id',
+        'team_id',
+        'completion_submitted_at',
+        'completed_at',
         'created_by',
     ];
 
@@ -28,8 +33,11 @@ class Project extends Model
     {
         return [
             'status' => ProjectStatus::class,
+            'priority' => TaskPriority::class,
             'start_date' => 'date',
             'deadline' => 'date',
+            'completion_submitted_at' => 'datetime',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -37,6 +45,11 @@ class Project extends Model
     public function manager(): BelongsTo
     {
         return $this->belongsTo(User::class, 'project_manager_id');
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 
     public function creator(): BelongsTo
@@ -63,6 +76,16 @@ class Project extends Model
     public function labels(): HasMany
     {
         return $this->hasMany(Label::class);
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(ProjectApproval::class);
+    }
+
+    public function conversation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Conversation::class)->where('type', 'project');
     }
 
     // Computed

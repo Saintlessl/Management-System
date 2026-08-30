@@ -11,6 +11,8 @@ const api = axios.create({
   withXSRFToken: true,
 });
 
+let unauthorizedRedirectInFlight = false;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -22,8 +24,10 @@ api.interceptors.response.use(
       error.response?.status === 401 &&
       !isAuthBootstrap &&
       !isLoginRequest &&
-      window.location.pathname !== '/login'
+      window.location.pathname !== '/login' &&
+      !unauthorizedRedirectInFlight
     ) {
+      unauthorizedRedirectInFlight = true;
       window.dispatchEvent(new Event('auth:unauthorized'));
       window.location.assign(`/login?from=${encodeURIComponent(currentUrl)}`);
     }

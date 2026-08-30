@@ -45,7 +45,17 @@ describe('LoginPage', () => {
   it('renders readable light form controls regardless of system theme', () => {
     renderLogin(vi.fn());
 
-    expect(screen.getByLabelText('Email')).toHaveClass('bg-white', 'text-slate-900', 'caret-blue-600');
+    expect(screen.getByLabelText('Email')).toHaveClass('bg-surface', 'text-foreground', 'caret-primary');
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+  });
+
+  it('presents the product workflow and a task-focused sign-in hierarchy', () => {
+    renderLogin(vi.fn());
+
+    expect(screen.getByRole('heading', { name: 'Masuk ke ProManage' })).toBeInTheDocument();
+    expect(screen.getByTestId('login-brand-panel')).toBeInTheDocument();
+    expect(screen.getByText('Proyek & tugas')).toBeInTheDocument();
+    expect(screen.getByText('Alur persetujuan')).toBeInTheDocument();
+    expect(screen.getByText('Kolaborasi tim')).toBeInTheDocument();
   });
 });

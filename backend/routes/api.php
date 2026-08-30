@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApprovalQueueController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
@@ -9,13 +10,22 @@ use App\Http\Controllers\Api\LabelController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ProjectCompletionWorkflowController;
 use App\Http\Controllers\Api\ProjectMemberController;
 use App\Http\Controllers\Api\ProjectUserOptionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\RoleOptionController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskWorkflowController;
+use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\TeamMemberController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\ReactionController;
+use App\Http\Controllers\Api\PresenceController;
+use App\Http\Controllers\Api\TypingController;
+use App\Http\Controllers\Api\WorkspaceTaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -39,7 +49,18 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
     Route::get('/project-user-options', [ProjectUserOptionController::class, 'index']);
+    Route::get('/my-tasks', [WorkspaceTaskController::class, 'index']);
+    Route::get('/approvals', [ApprovalQueueController::class, 'index']);
+    Route::apiResource('teams', TeamController::class);
+    Route::get('/teams/{team}/members', [TeamMemberController::class, 'index']);
+    Route::post('/teams/{team}/members', [TeamMemberController::class, 'store']);
+    Route::put('/teams/{team}/members/{member}', [TeamMemberController::class, 'update']);
+    Route::delete('/teams/{team}/members/{member}', [TeamMemberController::class, 'destroy']);
     Route::apiResource('projects', ProjectController::class);
+    Route::get('/projects/{project}/completion-approvals', [ProjectCompletionWorkflowController::class, 'index']);
+    Route::post('/projects/{project}/submit-completion', [ProjectCompletionWorkflowController::class, 'submit']);
+    Route::post('/projects/{project}/approve-completion', [ProjectCompletionWorkflowController::class, 'approve']);
+    Route::post('/projects/{project}/request-completion-revision', [ProjectCompletionWorkflowController::class, 'revision']);
     Route::get('/projects/{project}/members', [ProjectMemberController::class, 'index']);
     Route::post('/projects/{project}/members', [ProjectMemberController::class, 'store']);
     Route::put('/projects/{project}/members/{member}', [ProjectMemberController::class, 'update']);
@@ -66,6 +87,20 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/tasks/{task}/attachments', [AttachmentController::class, 'store']);
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download']);
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy']);
+
+    // Chat
+    Route::get('/conversations/search', [ConversationController::class, 'search']);
+    Route::apiResource('conversations', ConversationController::class)->only(['index', 'store', 'show']);
+    Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
+    Route::patch('/messages/{message}', [MessageController::class, 'update']);
+    Route::delete('/messages/{message}', [MessageController::class, 'destroy']);
+    Route::get('/messages/{message}/download/{attachmentId}', [MessageController::class, 'downloadAttachment']);
+    Route::post('/messages/{message}/reactions', [ReactionController::class, 'store']);
+    Route::delete('/messages/{message}/reactions/{reaction}', [ReactionController::class, 'destroy']);
+    Route::post('/presence/heartbeat', [PresenceController::class, 'heartbeat']);
+    Route::post('/presence/offline', [PresenceController::class, 'offline']);
+    Route::post('/conversations/{conversation}/typing', [TypingController::class, 'store']);
 });
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('admin')->group(function () {

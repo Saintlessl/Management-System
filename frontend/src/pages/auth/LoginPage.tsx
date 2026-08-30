@@ -1,6 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import axios from 'axios';
-import { LockKeyhole } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  FolderKanban,
+  LockKeyhole,
+  Mail,
+  UsersRound,
+  Workflow,
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -14,6 +22,24 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+
+const workspaceFeatures = [
+  {
+    title: 'Proyek & tugas',
+    description: 'Pantau progres dan prioritas dalam satu ruang kerja.',
+    icon: FolderKanban,
+  },
+  {
+    title: 'Alur persetujuan',
+    description: 'Jaga keputusan dan revisi tetap tercatat dengan jelas.',
+    icon: Workflow,
+  },
+  {
+    title: 'Kolaborasi tim',
+    description: 'Satukan konteks kerja, percakapan, dan tanggung jawab.',
+    icon: UsersRound,
+  },
+];
 
 export function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -47,54 +73,125 @@ export function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen bg-slate-50 lg:grid-cols-2">
-      <section className="hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <p className="text-lg font-bold">Management System</p>
-        <div>
-          <h1 className="max-w-lg text-4xl font-bold leading-tight">Kelola tim dan akses aplikasi dari satu workspace.</h1>
-          <p className="mt-4 max-w-lg text-blue-100">Akun hanya dibuat oleh administrator agar akses organisasi tetap terkontrol.</p>
+    <main className="grid min-h-[100dvh] overflow-hidden bg-background lg:grid-cols-[minmax(32rem,1.08fr)_minmax(30rem,0.92fr)]">
+      <section
+        data-testid="login-brand-panel"
+        className="login-brand-panel relative hidden overflow-hidden text-white lg:flex lg:min-h-[100dvh] lg:flex-col lg:justify-between lg:px-12 lg:py-10 xl:px-16 xl:py-12"
+      >
+        <div className="relative z-10 flex items-center gap-3">
+          <span className="brand-mark flex h-10 w-10 items-center justify-center rounded-xl text-base font-semibold text-white shadow-lg shadow-indigo-950/20">
+            P
+          </span>
+          <span>
+            <span className="block text-[15px] font-semibold tracking-tight">ProManage</span>
+            <span className="block text-[11px] text-indigo-100/65">Project workspace</span>
+          </span>
         </div>
-        <p className="text-sm text-blue-200">Secure administration workspace</p>
+
+        <div className="relative z-10 max-w-xl py-12">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/7 px-3 py-1.5 text-xs font-medium text-indigo-50 backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.85)]" />
+            Workspace internal
+          </div>
+          <h1 className="mt-6 max-w-lg text-4xl font-semibold leading-[1.08] tracking-[-0.035em] text-white xl:text-5xl">
+            Kerja tim lebih jernih, dari rencana sampai selesai.
+          </h1>
+          <p className="mt-5 max-w-lg text-[15px] leading-7 text-indigo-100/70">
+            Kelola prioritas, progres, dan keputusan penting dalam satu sistem yang dibangun untuk menjaga setiap tim tetap selaras.
+          </p>
+
+          <div className="mt-9 grid max-w-lg gap-3">
+            {workspaceFeatures.map(({ title, description, icon: Icon }) => (
+              <div key={title} className="group flex items-center gap-4 rounded-2xl border border-white/8 bg-white/5 px-4 py-3.5 backdrop-blur-sm transition-colors hover:bg-white/8">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/8 text-cyan-200">
+                  <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-white">{title}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-indigo-100/60">{description}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-2 text-xs text-indigo-100/55">
+          <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" />
+          Akses aman untuk pengguna workspace terdaftar.
+        </div>
       </section>
 
-      <main className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-            <LockKeyhole className="h-6 w-6" />
+      <section className="login-form-panel relative flex min-h-[100dvh] items-center justify-center overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+        <div className="relative z-10 w-full max-w-[29rem]">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <span className="brand-mark flex h-10 w-10 items-center justify-center rounded-xl text-base font-semibold text-white shadow-md">
+              P
+            </span>
+            <span>
+              <span className="block text-[15px] font-semibold tracking-tight text-foreground">ProManage</span>
+              <span className="block text-[11px] text-foreground-muted">Project workspace</span>
+            </span>
           </div>
-          <h2 className="mt-5 text-2xl font-bold text-slate-900">Masuk ke akun Anda</h2>
-          <p className="mt-2 text-sm text-slate-500">Gunakan akun yang diberikan oleh administrator.</p>
 
-          <form className="mt-7 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <Input
-              id="email"
-              type="email"
-              label="Email"
-              autoComplete="email"
-              placeholder="nama@perusahaan.com"
-              error={errors.email?.message}
-              {...register('email')}
-            />
-            <Input
-              id="password"
-              type="password"
-              label="Password"
-              autoComplete="current-password"
-              placeholder="Masukkan password"
-              error={errors.password?.message}
-              {...register('password')}
-            />
-            {errors.root?.message && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                {errors.root.message}
+          <div className="rounded-2xl border border-white/80 bg-surface/95 p-6 shadow-[0_24px_80px_-32px_rgba(43,49,91,0.32)] backdrop-blur sm:p-8">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary ring-1 ring-primary/10">
+                <LockKeyhole className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 pt-0.5">
+                <h2 className="text-2xl font-semibold tracking-[-0.025em] text-foreground">Masuk ke ProManage</h2>
+                <p className="mt-1 text-sm leading-relaxed text-foreground-muted">
+                  Lanjutkan ke workspace menggunakan akun terdaftar.
+                </p>
               </div>
-            )}
-            <Button type="submit" size="lg" isLoading={isSubmitting} className="w-full">
-              Masuk
-            </Button>
-          </form>
+            </div>
+
+            <form className="mt-7 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+              <Input
+                id="email"
+                type="email"
+                label="Email"
+                autoComplete="email"
+                placeholder="nama@perusahaan.com"
+                icon={<Mail className="h-4 w-4" />}
+                className="h-12 pl-10 text-base sm:text-sm"
+                error={errors.email?.message}
+                {...register('email')}
+              />
+              <Input
+                id="password"
+                type="password"
+                label="Password"
+                autoComplete="current-password"
+                placeholder="Masukkan password"
+                icon={<LockKeyhole className="h-4 w-4" />}
+                className="h-12 pl-10 text-base sm:text-sm"
+                error={errors.password?.message}
+                {...register('password')}
+              />
+
+              {errors.root?.message && (
+                <div
+                  className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-3 text-[13px] leading-relaxed text-danger"
+                  role="alert"
+                >
+                  {errors.root.message}
+                </div>
+              )}
+
+              <Button type="submit" size="lg" isLoading={isSubmitting} className="h-12 w-full rounded-xl shadow-lg shadow-primary/18">
+                Masuk
+                {!isSubmitting && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+              </Button>
+            </form>
+
+            <div className="mt-6 flex items-center justify-center gap-2 border-t border-border/80 pt-5 text-center text-xs text-foreground-muted">
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden="true" />
+              Butuh akses? Hubungi administrator workspace.
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
